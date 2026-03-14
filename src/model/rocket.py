@@ -5,14 +5,16 @@ class Rocket:
                  mass = 5000.0,
                  rotational_inertia = 7.5e5,
                  distance_tvc_cm = 3.0,
-                 gravity = 9.80665,
+                 gravity = 9.81,
                  ):
         # Constants from Section 2.1
         self.m = mass
         self.J = rotational_inertia
         self.l = distance_tvc_cm
-        self.g = gravity
+        self.g = gravity        
         self.state = np.zeros(6)
+        self.T = 0.0
+        self.delta = 0.0
 
     def set_initial_state(self, *,
             x = 0.0,
