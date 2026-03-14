@@ -43,18 +43,16 @@ class FlightController:
         x, z, theta, vx, vz, vtheta = state
         x_ref, z_ref, _, _, vz_ref, _ = target_state
 
-
         # --- Horizontal / Rotational Axis (Nested Loop Closure) ---
         # Outer Loop: Calculate required tilt (theta) to fix lateral position
         x_error = (x_ref - x)
-        # if abs(x_error) < 10: x_error *= abs(x_error) / 10
         vx_error = (0 - vx) * 4 # Assuming we want 0 lateral speed at the target
         theta_cmd = self.pos_pid.compute(x_error + vx_error, dt)        
-        theta_cmd /= 10.0
+        theta_cmd /= 15.0
 
         # landing smoothing
         z_landing = 1.0
-        if z < z_landing: theta_cmd *= (z + 0.5 * 0) / z_landing
+        if z < z_landing: theta_cmd *= (z - 0.5 * 0) / z_landing
         
         # Inner Loop: Calculate required gimbal (delta) to achieve that tilt
         att_error = theta_cmd - theta

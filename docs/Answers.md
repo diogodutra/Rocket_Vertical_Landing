@@ -97,3 +97,55 @@ Notes:
 * **Frequency Separation:** The inner loop is tuned to be faster than the outer loop to ensure stability and prevent resonance.
 * **Integrator Anti-Windup:** Clamping logic is applied to the Altitude Integrator to prevent command saturation during high-thrust maneuvers.
 * **Small-Angle Approximation:** The controller assumes $|\theta| < 20^\circ$ to maintain TVC linearity.
+
+# Session 4 - Robustness and sensitivity analyses
+## Question 4 - How much can the set of initial conditions be expanded while still be able to land within the requirements? E.g. how much further away can you initiate the powered descent? At which speed? With which tilt angle? Discuss.
+### OAT Grid Search
+One-At-a-Time (OAT) Grid Search is performed over the initial state parameters to quickly verify how much the envelope can be expanded for each state in separate:
+![grid-search](grid_search_summary.png)
+
+Here is an example of successfull flight:
+![single_flight._example](single_flight._example.png)
+
+### Initial x
+After 10 meters horizontally away from the target position, x and v_x finish with lateral translation still in progress. It looks like there is more opportunity for improvement by increasing hovering time, though:
+![ota_x](ota_x.png)
+
+### Initial z
+Initial altitude can start as low as 25 meters. Too low does not allow time for the altitude controller to avoid collision given the initial vertical speed of -10m/s. This envelope can hardly improve, though it does not seem to be a realistic scenario:
+![ota_z](ota_z.png)
+
+### Initial vx
+Lateral velocity must start up to 1 m/s. After this figure, there is an oscillation in the gimbal caused by the Altitude controller, and a premature flight ending. This indicates that there may be room for improvement if successfully solving a potential resonance with attitude controller:
+![ota_vx](ota_vx.png)
+
+### Initial vz
+Initial vertical velocity results takes too long for a landing. This issue can probably be solved by adjusting the gravity-feedforward in altitude control, which is currenly not accounting for a very low vertical speed:
+![ota_vz](ota_vz.png)
+
+On the other extreme, too high vertical speed cannot be compensanted within time. This could be addressed if we had higher thrust:
+![ota_vz2](ota_vz2.png)
+
+### Initial theta
+Attitude must start up to 5 degrees tilted. Otherwise, it manages to estabilize only the attitude control but not enough time to handle the position control. Again, it looks like there is room for improvement if we change the virtual gates to delay landing by hovering for a while until the slower outter loop is also estabilized:
+![ota_theta](ota_theta.png)
+
+All conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more suitable, though it would be a bit harder to show the influence of each initial state disturbance on the valid envelope boundaries.
+
+### Question 5 - What are the key limiting factors preventing the controller to land the rocket with a larger subset of initial states, or a better accuracy? What type of Guidance and Control (G&C) architecture would be better?
+
+As discussed in the previous question 4, there are 3 limiting factors observed at the extremities of the envelope:
+
+1 - The landing event sometimes happen unnecessarially early (ie: 17.5 seconds when it could be up to 35 seconds). Such waste of potential flight time could be used to hover a few meters above the ground and have enough time to estabilize other parameters that have not yet met the requirements (usually lateral position and lateral velocity). Such new feature ("Terminal Guidance") could be achieved by creating a more sophisiticated state machine that could adding virtual gates by changing the vertical target position based on the rocket current state.
+
+2 - The feedforward gravity for altitude control is not considering the possibility of the initial vertical speed be too slow. A correction could be implemented by adding an initial shorter controller that decreases the hover thrust in order to achieve a target vertical descendent speed. This could also be managed by a machine state as suggested in the previous bullet point. The combination of points 1 and 2 would lead to change the controllers from reactive to proactive approach ("Powered Descent Guidance").
+
+3 - Oscillations in the TVC gimbal command, is sometimes observed in some situations. This usually happen when aggressive corrections are required involving large $\theta_{cmd}$, which causes coupling issues between the attitude and position controllers. It is also caused by a momentary lateral force in the opposite direction where the lateral displacement is commanded due to the TVC dynamics:
+
+  - Some manual tuning of the position controller was performed in order to decrease such coupling, but more extensive work on this could improve lead to improved performance (perhaps with automated gain optimization techniques).
+
+  - Passing $\theta_{cmd}$ through a 2nd order lead-lag filter could also help to avoid abrupt command changes.
+
+  - Gain scheduling could also help by setting more aggressive gains at the beginning and smaller gains at the terminal phase to avoid such oscillations.
+
+  - Complete change of GNC architecture could also be helpful. By considering LQR or MPC, all the issues reported above (ie: non-linearities, coupling) and even a custom cost function could be incorporated into the controller capabilities, potentially resulting in overall improved performance. However, such approaches are more complex to design.

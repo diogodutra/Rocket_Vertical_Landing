@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_results(data):
+def plot_flight(data):
     # Column mapping
     t = data[:, 0]
     x, z, theta = data[:, 1], data[:, 2], data[:, 3]

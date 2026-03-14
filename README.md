@@ -15,3 +15,21 @@ Answer to the assignment questions are available in `docs` folder.
 - Classical reversed signals in Attitude controller. Fixed it.
 - My position controller was unstable at first due to unstable nested loop. Artificially decreased theta_cmd from outer loop output.
 - Landing opportunity sometimes missed (too early or too late). So, I added a terminal landing modification in z_ref. Ideally it should have been a state machine with virtual gates, but not much time left.
+
+# Run
+Single flight simulation:
+```
+python main.py
+```
+
+Grid search on initial state disturbances:
+```
+python -m src.helper.run_grid
+```
+
+Unit tests:
+```
+pytest tests/test_altitude_controller.py
+pytest tests/test_attitude_controller.py
+pytest tests/test_all_controllers.py
+```
