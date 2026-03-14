@@ -35,3 +35,8 @@ class PID:
             self.integral -= error * dt
             
         return output
+    
+    def reset(self):
+        """Resets the integral and derivative terms to zero."""
+        self.integral = 0.0
+        self.prev_error = 0.0

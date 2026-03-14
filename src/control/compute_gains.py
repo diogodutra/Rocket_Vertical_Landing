@@ -1,7 +1,3 @@
-# def compute_theoretical_gains(rocket,
-#                               wn_att=2.0, zeta_att=0.7,
-#                               wn_alt=1.0, zeta_alt=1.0,
-#                               wn_pos=0.5, zeta_pos=0.7):
 def compute_theoretical_gains(rocket,
                               wn_att=3.0, zeta_att=1.0,
                               wn_alt=1.0, zeta_alt=1.0,
@@ -18,13 +14,13 @@ def compute_theoretical_gains(rocket,
     Returns:
         dict: A dictionary containing sets of Kp, Ki, Kd for each loop.
     """
-    # 1. Altitude Gains (Vertical)
+    # Altitude Gains (Vertical)
     # Based on m*z_ddot + Kd*z_dot + Kp*z = 0
     kp_alt = rocket.m * (wn_alt**2)
     kd_alt = 2 * zeta_alt * wn_alt * rocket.m
     ki_alt = 0.0 # 0.5 * kp_alt
     
-    # 2. Attitude Gains (Inner Loop)
+    # Attitude Gains (Inner Loop)
     # Based on J*theta_ddot + (T*l*Kd)*theta_dot + (T*l*Kp)*theta = 0
     # We assume a nominal thrust (T) equal to hover weight (m*g)
     T_hover = rocket.m * rocket.g
@@ -33,7 +29,7 @@ def compute_theoretical_gains(rocket,
     kd_att = (2 * zeta_att * wn_att * rocket.J) / (T_hover * rocket.l)
     ki_att = 0.0  # Usually kept at 0 for inner loop stability
     
-    # 3. Position Gains (Outer Loop)
+    # Position Gains (Outer Loop)
     # Based on x_ddot = g * theta -> Kp_pos = wn^2 / g
     ki_pos = 0.0
     kp_pos = (wn_pos**2) / rocket.g
@@ -44,3 +40,21 @@ def compute_theoretical_gains(rocket,
         'attitude': {'kp': kp_att, 'ki': ki_att, 'kd': kd_att},
         'position': {'kp': kp_pos, 'ki': ki_pos, 'kd': kd_pos}
     }
+
+if __name__ == "__main__":
+    from src.model.rocket import Rocket
+    rocket = Rocket()
+    gains = compute_theoretical_gains(rocket)
+
+    print("-" * 30)
+    print(" GNC THEORETICAL GAINS OUTPUT")
+    print("-" * 30)
+    
+    for loop, values in gains.items():
+        print(f"\n[{loop.upper()} LOOP]")
+        print(f"  Kp: {values['kp']:10.4f}")
+        print(f"  Kd: {values['kd']:10.4f}")
+        print(f"  Ki: {values['ki']:10.4f}")
+    
+    print("\n" + "-" * 30)
+    print("Use these values in GNCController")

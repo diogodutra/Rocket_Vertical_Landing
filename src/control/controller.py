@@ -65,3 +65,37 @@ class FlightController:
         thrust_cmd = self.alt_pid.compute(alt_error + vel_error, dt) + (self.m * self.g)
 
         return thrust_cmd, delta_cmd, theta_cmd
+    
+
+if __name__ == "__main__":    
+    rocket = Rocket()
+    dt = 0.01
+    target_state = [0.0, 0.0, 0.0, 0.0, -0.5, 0.0] # Target landing at -0.5 m/s
+
+    # Define a list of scenarios to verify different controller behaviors
+    # Format: (Scenario Name, [x, z, theta, vx, vz, vtheta])
+    scenarios = [
+        ("Nominal",                 [ 0.0, 150.0, 0.0 , 0.0, -10.0, 0.00]),
+        ("High Altitude Descent",   [ 3.0, 100.0, 0.01, 0.1, -9.0, 0.01]),
+        ("Lateral Correction",      [-5.0,  50.0, 0.0 , 0.2, -5.0, 0.0]),
+        ("Near Touchdown",          [ 0.5,   0.8, 0.01, 0.1, -1.0, 0.0]),
+        ("Stationary/Hover",        [ 0.0,  20.0, 0.0 , 0.0, 0.0, 0.0]),
+    ]
+
+    print("=" * 60)
+    print(f"{'SCENARIO':<25} | {'THRUST (N)':<12} | {'TVC (rad)':<10}")
+    print("-" * 60)
+
+    for name, state in scenarios:
+        controller = FlightController(rocket)
+        thrust, delta, theta_c = controller.update(state, target_state, dt)
+        
+        # Print a clean table for easy copy-pasting into C++ tests
+        print(f"{name:<25} | {thrust:12.4f} | {delta:10.4f}")
+        
+        # Detailed view for individual verification if needed
+        # print(f"  Inputs: {state}")
+        # print(f"  Target Tilt: {theta_c:10.4f} rad")
+
+    print("=" * 60)
+    print("Use these values to verify C++ GNCController::update() consistency.")

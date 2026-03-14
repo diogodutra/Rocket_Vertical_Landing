@@ -1,22 +1,10 @@
 # Answers
 Answer to the assignment questions are available in `docs` folder.
 
-# Justifications
+# Environment
+All develoment was perfored in VS Code on Windows 11.
 
-
-
-# Notes:
-48 hours does not seem enough for the scope of this project with all usual development processes, so some simplifications were put in place:
-- No academic formalities (ie: literature references).
-- Dynamically typed language (ie: no type definitions) as optimization is not the focus.
-- Test-driven code development approach was followed.
-- First theoretical gains were not quite meeting the landing requirements (ie: vertical speed higher). Isolated altitude.
-- Found out that vel_error was not correctly accounted for in my first Altitude controller. Fixed it.
-- Classical reversed signals in Attitude controller. Fixed it.
-- My position controller was unstable at first due to unstable nested loop. Artificially decreased theta_cmd from outer loop output.
-- Landing opportunity sometimes missed (too early or too late). So, I added a terminal landing modification in z_ref. Ideally it should have been a state machine with virtual gates, but not much time left.
-
-# Run
+# Run the Python code
 Single flight simulation:
 ```
 python main.py
@@ -33,3 +21,17 @@ pytest tests/test_altitude_controller.py
 pytest tests/test_attitude_controller.py
 pytest tests/test_all_controllers.py
 ```
+
+# Run the C++ code
+Refer to `src/embedded/README.md`.
+
+# Notes:
+48 hours does not seem enough for the entire scope of this project with all usual development processes, so some simplifications were put in place:
+- No academic formalities (ie: literature references).
+- Python remains dynamically typed language (ie: no type definitions) as optimization is not the focus.
+- Test-driven code development approach was followed.
+- First theoretical gains were not quite meeting the landing requirements (ie: vertical speed higher), so further manual tuning was performed.
+- Found out that `vel_error` was not correctly accounted for in my first Altitude controller implementation. Fixed it.
+- Typical reversed signals in Attitude controller. Fixed it.
+- My Position controller was unstable at first due to coupling from nested loop. Fixed it by artificially decreased $\theta_{cmd}$ from outer loop output.
+- Landing opportunity sometimes missed (too early or too late). So, I added a terminal landing modification in z_ref. This could be improved even further, though. Ideally, it should have been a state machine with virtual gates for different flight phases, but not much time left.

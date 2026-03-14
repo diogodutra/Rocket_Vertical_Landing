@@ -70,9 +70,9 @@ Also, there is a risk of resonance and instability due to: true coupling of atti
 As a preliminary gain selection:
 - Attitude PD controller must have high bandwidth, so we prioritize high $K_p$ for $\theta$ and a strong $K_d$ to dampen oscillations. $K_i$ should be null because we assume no torque disturbances (ie: aerodinamics, CM offsets).
 
-- Position PD controller must be significantly slower than the inner loop (usually by a factor of 5–10) to prevent the two loops from "fighting" each other and causing instability. Also, $K_i$ should be null to avoid coupling with attitude controller, and because there is no lateral speed of the target landing position.
+- Position PD controller must be significantly slower than the inner loop (usually by a factor of 5–10) to prevent the two loops from "fighting" each other and causing instability. Also, $K_i$ should be null to avoid coupling with attitude controller, and because there is no lateral speed of the target landing position and no aerodynamic disturbances.
 
-- Altitude PID controller can have less bandwidth since its dynamic is slower. $K_i$ is null to avoid windup since the landing target is not moving. It will comprise of PID control plus feedforward for gravity compensation.
+- Altitude PD controller can have less bandwidth since its dynamic is slower. $K_i$ is null to avoid windup, and also because the landing target is not moving vertically and there is no aerodynamic disturbances. It will comprise of PID control plus feedforward for gravity compensation $T_{hover} \approx mg$.
 
 This way, Altitude controller handles the gravity, while the nested Position/Attitude controllers handle the position similar to the "Inverted Pendulum" problem.
 
@@ -81,28 +81,26 @@ Calculating the theoretical gains for the attitude controller, we first assume t
 ### Theoretical Gain Derivation
 Initial gains were derived by linearizing the plant dynamics and applying pole placement for a desired natural frequency $\omega_n$ and damping ratio $\zeta$.
 
-#### Attitude Controller (Inner Loop)
-The linearized rotational dynamics are governed by $J\ddot{\theta} = -(T \cdot l) \cdot \delta$. Using a PD law $\delta = K_{p,\theta}\theta + K_{d,\theta}\dot{\theta}$:
-* **$K_{p,\theta} = \frac{J \cdot \omega_n^2}{T \cdot l}$**
-* **$K_{d,\theta} = \frac{2 \zeta \omega_n \cdot J}{T \cdot l}$**
-* *Target:* $\omega_n = 2.0$ rad/s, $\zeta = 0.7$ (Fast response, reduced overshoot).
-
 #### Altitude Controller (Vertical Loop)
 The vertical dynamics $m\ddot{z} = T - mg$ are controlled via $T = mg + K_{p,z}e_z + K_{d,z}\dot{e}_z + K_{i,z}\int e_z$:
 * **$K_{p,z} = m \cdot \omega_n^2$**
 * **$K_{d,z} = 2 \zeta \omega_n \cdot m$**
-* *Target:* $\omega_n = 1.0$ rad/s, $\zeta = 1.0$ (Critical damping to prevent "bouncing").
 
 #### Position Controller (Outer Loop)
 Translates lateral error into a tilt command. Since $a_x \approx g \cdot \theta$:
 * **$K_{p,x} = \frac{\omega_n^2}{g}$**
-* *Target:* $\omega_n = 0.5$ rad/s (Ensuring frequency separation from the inner loop, reduced overshoot).
+* **$K_{d,x} = \frac{2 \zeta \omega_n}{g}$**
+
+#### Attitude Controller (Inner Loop)
+The linearized rotational dynamics are governed by $J\ddot{\theta} = -(T \cdot l) \cdot \delta$. Using a PD law $\delta = K_{p,\theta}\theta + K_{d,\theta}\dot{\theta}$:
+* **$K_{p,\theta} = \frac{J \cdot \omega_n^2}{T \cdot l}$**
+* **$K_{d,\theta} = \frac{2 \zeta \omega_n \cdot J}{T \cdot l}$**
 
 Autopilot (rocket steering) implementation is found in `control` folder.
 
 Notes:
-* **Frequency Separation:** The inner loop is tuned to be faster than the outer loop to ensure stability and prevent resonance.
-* **Integrator Anti-Windup:** Clamping logic is applied to the Altitude Integrator to prevent command saturation during high-thrust maneuvers.
+* **Frequency Separation:** The inner loop is tuned to be faster than the outter loop to ensure stability and prevent resonance.
+* **Integrator Anti-Windup:** Not required as all integrator gains are null in our controllers.
 * **Small-Angle Approximation:** The controller assumes $|\theta| < 20^\circ$ to maintain TVC linearity.
 
 # Session 4 - Robustness and sensitivity analyses
@@ -191,8 +189,54 @@ All state variables have observability thanks to these sensors:
 
 The aided navigation system should combine high-frequency sensors (IMU) and low-frequency sensors (ie: GPS, baroaltimeter, LiDAR) in a state estimator (KF) for best accuracy. EKF might be chosen over KF if non-linearity is found to play a relevant role in errors propagation of time extrapolation. Also, transfer alignment might be considered for misalignment estimation, achieving better accuracy during longer non-aided periods (ie: without GPS and LiDAR).
 
+In a real application, further discussions should consider lever-arm (sensors away from CM), structural deformations (ie: bending, torsion, flutter, vibrations, misalignments) and operational conditions (ie: thermal cycles on influencing bias drift, different altitudes influencing GPS accuracy).
+
 The result should be a high-frequency optimal state estimator with reduced bias drift after proper tuning.
 
 Regarding the control states, the are measured separetely:
 - $\delta$ using LVDT, RVDT, potentiometers, encoders or actuator current.
-- $T$ measuring combustion chamber pressure transducer, liquid fuel consumption or even IMU (since there is aerodynamical forces, there is only gravity and thrust).
+- $T$ measuring combustion chamber pressure transducer, liquid fuel consumption or even IMU (since there is aerodynamical forces and constant mass value is well known then there is only gravity and thrust, otherwise ignore IMU).
+
+## Question 9 - Re-implement the control algorithm you developed in section 3 but this time in C++. Additional tips and constraints for this C++ version: you should use an object-oriented approach; think about methods, encapsulation, maintainability, testability; your implementation needs to satisfy all constraints you deem necessary to successfully and safely run on an embedded flight computer: list them.
+
+The Python code was reimplemented in C++17 using an object-oriented designed for high reliability embedded environment. The source code is available at `src\embedded`.
+
+Applied Embedded Constraints & Safety Features:
+
+- **Encapsulation**: avoiding arrays in favor of structs, defining constants when applicable and keeping internal variables as private;
+
+- **Static Memory Allocation**: no `new`, `malloc`, or standard containers like `std::vector` that grow dynamically to avoid non-deterministic timing and bad memory access.
+
+- **Floating Point Consistency**: using same float (32-bit) instead of double (64-bit) consistently across all variables for higher hardware compatibility.
+
+- **Temporal Determinism**: fixed-step execution (dt) designed to run in a deterministic loop (e.g., a 100Hz task) without timing jitter.
+
+- **No Exceptions**: use of `noexcept` ensuring the code is noexcept so the GNC never crashes in flight due to unhandled exception.
+
+- **Anti-Windup**: not necesasry as we haven't used the Integrator in PID.
+
+- **Actuator Saturation**: every PID has strict output limits to prevent invalid commands to actuators.
+
+- **Numerical Safety**: protection against division-by-zero.
+
+- **Namespace Protection**: wrap GNC code in a namespace (eg: `RocketLab::GNC`) to avoid naming collisions with other libraries.
+
+- **Automated Verification**: following test-driven development approach, integrated GoogleTest for Continuous Integration mindset, allowing automated regression testing and naturally contributing towards a future Built-In-Test library.
+
+- **Robustness**: PID state reset capability, should in the future a multi-phase flight transition be implemented.
+
+Opportunities for improvement:
+- Optimization: further definitions for compile could decrease overhead, such as disabling exceptions.
+
+## Question 10 - Write unit tests and provide proof showing that your C++ implementation is performing as expected, matching your MATLAB/Python implementation.
+
+The C++ source code contain unit tests are available at `src/embedded/tests`. They can be executed by:
+```
+./build/run_gnc_tests.exe
+```
+
+Alternatively, it can also be executed by:
+```
+cd build/
+ctest.exe
+```
