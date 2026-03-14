@@ -25,6 +25,13 @@ $$\ddot{\theta} = \frac{-T \cdot l}{J} \sin(\delta)$$
 From the equations above, and using Euler integration, we derive the non-linear equations of motion and their time-based propagation in matrix form:
 $$\frac{d}{dt} \begin{bmatrix} x \\ z \\ \theta \\ \dot{x} \\ \dot{z} \\ \dot{\theta} \end{bmatrix} = \begin{bmatrix} \dot{x} \\ \dot{z} \\ \dot{\theta} \\ \frac{T}{m} \sin(\theta + \delta) \\ \frac{T}{m} \cos(\theta + \delta) - g \\ -\frac{T \cdot l}{J} \sin(\delta) \end{bmatrix}$$
 
+### Integrator
+Time-propagation of state is non-linear for accuracy. Any further simplifications are reserved for controllers design only.
+
+Time integrator should not be Euler to avoid numerical errors (ie: artificial non-conservation of energy). High accuracy integrators (Runge-Kutta 4th order) could be benefitial for a real application (eg: HILS), but for the present project we selected the second-order Heun's method as a balance between simplicity, computational speed and accuracy.
+
+The plant (ie: rocket model) equations and integrator are implemented in the `model` folder.
+
 ## Question 2 - Demonstrate your modelling works as expected on an example case.
 
 To verify the fidelity of the 3-DOF rocket model and the integration scheme, the simulation is subjected to four distinct unit test cases. These tests ensure that:
@@ -102,7 +109,7 @@ Notes:
 ## Question 4 - How much can the set of initial conditions be expanded while still be able to land within the requirements? E.g. how much further away can you initiate the powered descent? At which speed? With which tilt angle? Discuss.
 ### OAT Grid Search
 One-At-a-Time (OAT) Grid Search is performed over the initial state parameters to quickly verify how much the envelope can be expanded for each state in separate:
-![grid-search](grid_search_summary.png)
+![grid-search](grid_search_summary_nominal.png)
 
 Here is an example of successfull flight:
 ![single_flight._example](single_flight._example.png)
@@ -130,9 +137,9 @@ On the other extreme, too high vertical speed cannot be compensanted within time
 Attitude must start up to 5 degrees tilted. Otherwise, it manages to estabilize only the attitude control but not enough time to handle the position control. Again, it looks like there is room for improvement if we change the virtual gates to delay landing by hovering for a while until the slower outter loop is also estabilized:
 ![ota_theta](ota_theta.png)
 
-All conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more suitable, though it would be a bit harder to show the influence of each initial state disturbance on the valid envelope boundaries.
+All conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more appropriate, though it would be a bit harder to show the influence of each initial state disturbance on the valid envelope boundaries.
 
-### Question 5 - What are the key limiting factors preventing the controller to land the rocket with a larger subset of initial states, or a better accuracy? What type of Guidance and Control (G&C) architecture would be better?
+## Question 5 - What are the key limiting factors preventing the controller to land the rocket with a larger subset of initial states, or a better accuracy? What type of Guidance and Control (G&C) architecture would be better?
 
 As discussed in the previous question 4, there are 3 limiting factors observed at the extremities of the envelope:
 
@@ -149,3 +156,43 @@ As discussed in the previous question 4, there are 3 limiting factors observed a
   - Gain scheduling could also help by setting more aggressive gains at the beginning and smaller gains at the terminal phase to avoid such oscillations.
 
   - Complete change of GNC architecture could also be helpful. By considering LQR or MPC, all the issues reported above (ie: non-linearities, coupling) and even a custom cost function could be incorporated into the controller capabilities, potentially resulting in overall improved performance. However, such approaches are more complex to design.
+
+# Session 5 - Actuators and sensors requirements
+## Question 6 - Derive and justify reasonable requirements for TVC min/max angles and Thrust min/max value.
+
+The grid search from the previous session was repeated, but this time adding the plot of minimum and maximum control commands:
+![actuation_requirements](actuation_requirements.png)
+
+From the plot above, and considering only the nominal conditions from "3.2 Requirements", we conclude that our current GNC architecture requires:
+ - thrust between 48 and 68 kN; and
+ - TVC angles between -10 and 10 degrees.
+
+Such thrust requirement results in thrust ratio of 1.4. This is very achievable considering that other similar rockets are usually between 1.5 and 2.0 thrust ratio.
+
+Regarding TVC angles, this is also reasonable considering that other similar rockets are usually between 5 to 15 degrees of gimbal range.
+
+Again, all conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more appropriate.
+
+## Question 7 - Implement those limits in your modelling and show how much this impacts your landing performance.
+
+The answer to the previous question approached both sides at the same time: comparison with other similar rockets and assessment of controls envelopes from our rocket simulation. Therefore, the TVC and Thrust requirements detailed in the previous question have no impact on the landing performance within the nominal scenarios.
+
+For the sake of exercise, the OTA-grid-search is executed again but limiting the TVC gimbal to +-5 degrees and maximum thurst to 60 kN:
+![grid-search](grid_search_summary_reduced.png)
+
+The result is that the envelope of successfull landings has reduced across almost all parameters. This shows that the requirements from the previous question 6 are rather crucial for the success of this CONOPS.
+
+## Question 8 - Break down the different state variables and give examples of sensors that could be used, or alternatively examples of indirect observation method that would provide suitable estimates.
+
+All state variables have observability thanks to these sensors:
+- $\dot{\theta}$ from gyroscope (ie: IMU).
+- $\theta$, $\dot{x}$, $\dot{z}$ from inertial navigation system (INS).
+- $x$, $z$ from aided navigation system (ie: KF).
+
+The aided navigation system should combine high-frequency sensors (IMU) and low-frequency sensors (ie: GPS, baroaltimeter, LiDAR) in a state estimator (KF) for best accuracy. EKF might be chosen over KF if non-linearity is found to play a relevant role in errors propagation of time extrapolation. Also, transfer alignment might be considered for misalignment estimation, achieving better accuracy during longer non-aided periods (ie: without GPS and LiDAR).
+
+The result should be a high-frequency optimal state estimator with reduced bias drift after proper tuning.
+
+Regarding the control states, the are measured separetely:
+- $\delta$ using LVDT, RVDT, potentiometers, encoders or actuator current.
+- $T$ measuring combustion chamber pressure transducer, liquid fuel consumption or even IMU (since there is aerodynamical forces, there is only gravity and thrust).

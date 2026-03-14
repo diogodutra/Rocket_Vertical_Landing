@@ -11,21 +11,21 @@ def plot_flight(data):
 
     fig, axs = plt.subplots(4, 1, figsize=(12, 6), sharex=True)
     
-    # 1. Trajectory
+    # Trajectory
     axs[0].plot(t, z * 0.1, label='Altitude (z)')
     axs[0].plot(t, x, label='Lateral (x)')
     axs[0].set_ylabel('Position [m]')
     axs[0].legend(loc='upper center', ncol=2)
     axs[0].grid(True)
     
-    # 2. Velocities
+    # Velocities
     axs[1].plot(t, vz, label='Vertical (vz)')
     axs[1].plot(t, vx, label='Lateral (vx)')
     axs[1].set_ylabel('Velocity [m/s]')
     axs[1].legend(loc='upper center', ncol=2)
     axs[1].grid(True)
 
-    # 3. Attitude (Theta) vs Command
+    # Attitude (Theta) vs Command
     axs[2].plot(t, np.rad2deg(theta), label='Actual (theta)', color='purple', linewidth=2)
     axs[2].plot(t, np.rad2deg(theta_cmd), label='Command (ref)', color='orange', linestyle='--')
     axs[2].axhline(y=0, color='black', linestyle='-', alpha=0.3)
@@ -33,7 +33,7 @@ def plot_flight(data):
     axs[2].legend(loc='upper center', ncol=2)
     axs[2].grid(True)
 
-    # 4. Control Effort
+    # Control Effort
     axs[3].plot(t, thrust/1000, label='Thrust [kN]', color='r')
     axs[3].set_ylabel('Thrust [kN]')
     
