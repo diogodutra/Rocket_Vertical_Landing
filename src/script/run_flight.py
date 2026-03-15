@@ -6,7 +6,7 @@
 from src.helper.sim import RocketSimulator
 from src.helper.plots import plot_flight
 
-def run_simulation():
+def run_simulation(**kwargs):
     """
     Configures and executes a specific flight scenario to validate the GNC logic.
     
@@ -16,17 +16,18 @@ def run_simulation():
     """
     sim = RocketSimulator(dt=0.02, t_max=35.0,
             target_state=[0.0, 0.0, 0.0, 0.0, -0.5, 0.0])
+
+    history = sim.run(**kwargs)
         
-    history = sim.run()
-    # history = sim.run(theta=0.01)
-    # history = sim.run(x=10)
-    
-    success, report = sim.check_landing_criteria(history)    
+    success, report = sim.check_landing_criteria(history) 
+
+    return history, success, report
+
+if __name__ == "__main__":
+    history, success, report = run_simulation()
+       
     print(f"Landing Success: {success}")
     if not success:
         print(f"Failure Report: {report}")
 
     plot_flight(history)
-
-if __name__ == "__main__":
-    run_simulation()

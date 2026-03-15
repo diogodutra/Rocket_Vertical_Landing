@@ -23,6 +23,11 @@ Grid search on initial state disturbances:
 python -m src.script.run_grid
 ```
 
+Create flight animation:
+```
+python -m src.script.create_animation
+```
+
 Unit tests:
 ```
 pytest tests/test_altitude_controller.py
