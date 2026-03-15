@@ -1,5 +1,8 @@
 # Source code for GNC controller C++17
 
+## Documentation
+The source-code follows DOxygen/Sphinx standard.
+
 ## Compile and run
 
 ### Preparation

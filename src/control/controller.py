@@ -2,13 +2,24 @@ from .pid import PID
 from .compute_gains import compute_theoretical_gains
 from src.model.rocket import Rocket
 
-def clamp(n, smallest, largest): return max(smallest, min(n, largest))
+def clamp(n, smallest, largest):
+    """Utility to constrain a value within a defined range."""
+    return max(smallest, min(n, largest))
 
 class FlightController:
+    """
+    Manages 3-DoF rocket flight dynamics using nested PID control loops.
+    
+    This controller handles altitude, lateral position, and attitude (tilt),
+    incorporating a virtual gate for terminal descent stability.
+    """
     def __init__(self, rocket: Rocket):
         """
+        Initializes the flight controller with gains derived from rocket parameters.
+
         Args:
-            rocket: An instance of the Rocket class providing m, J, l, g.
+            rocket (Rocket): Instance providing mass (m), inertia (J), 
+                length (l), and gravity (g).
         """
         self.m = rocket.m
         self.g = rocket.g
@@ -27,7 +38,7 @@ class FlightController:
         # Target: x -> commands theta_cmd
         pos = gains['position']
         self.pos_pid = PID(kp=pos['kp'], ki=pos['ki'], kd=pos['kd'],
-                           output_limits=(-0.02, 0.02)) # ~1 deg tilt limit
+                           output_limits=(-0.01, 0.01))
         
         # Attitude Loop (Inner)
         # Target: theta -> commands gimbal delta
@@ -38,11 +49,22 @@ class FlightController:
     def update(self, state, target_state, dt,
                disable_att=False, disable_pos=False, disable_alt=False):
         """
-        state: [x, z, theta, vx, vz, vtheta]
-        target_state: [x_ref, z_ref, theta_ref, vx_ref, vz_ref, vtheta_ref]
+        Performs a single control step to calculate actuator commands.
+
+        Args:
+            state (list): Current state [x, z, theta, vx, vz, vtheta].
+            target_state (list): Target state [x_ref, z_ref, theta_ref, vx_ref, vz_ref, vtheta_ref].
+            dt (float): Time step since last update [s].
+            disable_att (bool): If True, bypasses attitude control.
+            disable_pos (bool): If True, bypasses lateral position control.
+            disable_alt (bool): If True, bypasses altitude control.
+
+        Returns:
+            tuple: (thrust_cmd, delta_cmd, theta_cmd) representing 
+                thrust magnitude [N], TVC angle [rad], and targeted tilt [rad].
         """
         x, z, theta, vx, vz, vtheta = state
-        x_ref, z_ref, _, _, vz_ref, _ = target_state
+        x_ref, z_ref, _, _, vz_ref, _ = self.virtual_gate(state, target_state)
 
         # Horizontal / Rotational Axis (Nested Loop Closure)
         # Outer Loop: Calculate required tilt (theta) to fix lateral position
@@ -64,6 +86,30 @@ class FlightController:
             thrust_cmd += self.alt_pid.compute(alt_error, dt)
 
         return thrust_cmd, delta_cmd, theta_cmd
+    
+
+    def virtual_gate(self, state, target_state):
+        """
+        Creates a virtual moving checkpoint to provide smoother touchdown.
+
+        Args:
+            state (list): Current vehicle state.
+            target_state (list): Original reference state.
+
+        Returns:
+            list: Adjusted target state with offset Z reference.
+        """
+        adj_target_state = target_state.copy()
+        z = state[1]
+        gate_offset = 0.5
+        gate_threshold = 2
+        if z > gate_threshold:
+            adj_target_state[1] += gate_offset
+        else:
+            # Linear ramp to zero to soften final contact
+            adj_target_state[1] += gate_offset * z / gate_threshold
+
+        return adj_target_state
     
 
 if __name__ == "__main__":    

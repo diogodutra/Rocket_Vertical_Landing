@@ -1,8 +1,26 @@
+"""
+@file run_envelope.py
+@brief Analysis of actuators demand (Thrust and TVC) across the flight envelope.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from src.helper.grid_search import perform_grid_search, generate_oat_grid
 
 def plot_grid_results(results):
+    """
+    Generates a professional telemetry-style analysis of actuation requirements.
+    
+    This visualization maps the relationship between plant uncertainties 
+    (e.g., mass, inertia) and the physical limits of the hardware:
+    1.  Top Row: Binary success/failure status (V&V check).
+    2.  Bottom Row: Dynamic range of thrust [kN] and TVC [deg] required for stability.
+
+    Args:
+        results (dict): Dictionary of parameter study results containing values,
+            pass/fail status, and the actuation envelope (min/max demands).
+    """
+    
     # Maintain the 1:3 ratio for a professional "telem" look
     fig, axs = plt.subplots(2, 5, figsize=(12, 6), 
                             gridspec_kw={'height_ratios': [1, 3]},

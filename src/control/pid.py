@@ -1,5 +1,26 @@
+"""
+@file pid.py
+@brief Standard PID control implementation with saturation and anti-windup.
+"""
+
 class PID:
+    """
+    A Proportional-Integral-Derivative (PID) controller with output clamping.
+    
+    This implementation includes a conditional integration anti-windup mechanism
+    to prevent integral overshoot when the actuator reaches its physical limits.
+    """
     def __init__(self, kp, ki, kd, output_limits=(None, None)):
+        """
+        Initializes the PID controller with gains and saturation limits.
+
+        Args:
+            kp (float): Proportional gain.
+            ki (float): Integral gain.
+            kd (float): Derivative gain.
+            output_limits (tuple): A tuple of (min_output, max_output). 
+                Use None for no limit.
+        """
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -9,6 +30,16 @@ class PID:
         self.prev_error = None
         
     def compute(self, error, dt):
+        """
+        Calculates the control output based on current error and time increment.
+
+        Args:
+            error (float): The difference between reference and process variable.
+            dt (float): Time increment since last calculation [s].
+
+        Returns:
+            float: The computed control command, clamped to output_limits.
+        """
         if dt <= 0: return 0.0
         
         # Proportional
@@ -41,6 +72,11 @@ class PID:
         return output
     
     def reset(self):
-        """Resets the integral and derivative terms to zero."""
+        """
+        Resets the internal controller state.
+        
+        Clears the accumulated integral and resets the error history to 
+        prevent derivative spikes on the next compute() call.
+        """
         self.integral = 0.0
         self.prev_error = 0.0

@@ -1,20 +1,53 @@
+"""
+@file sim.py
+@brief Simulation environment for GNC verification.
+"""
+
 import numpy as np
 from src.model.rocket import Rocket
 from src.model.integrator import HeunIntegrator
 from src.control.controller import FlightController
 
 class RocketSimulator:
+    """
+    Simulation engine for propagating rocket dynamics and evaluating GNC performance.
+    
+    This class integrates the physics model, the flight controller, and 
+    the numerical integrator to produce a flight trajectory.
+    """
     def __init__(self, *, dt=0.02, t_max=35.0,
                  target_state=[0.0, 0.0, 0.0, 0.0, -0.5, 0.0]):
+        """
+        Initializes simulation parameters.
+
+        Args:
+            dt (float): Integration time step [s].
+            t_max (float): Maximum simulation time before timeout [s].
+            target_state (list): Desired landing state vector 
+                [x (m), z (m), theta (rad), vx (m/s), vz (m/s), vtheta (rad/s)].
+        """
         self.dt = dt
         self.t_max = t_max
         self.target_state = np.array(target_state)
-        self.target_state[1] += 0.5
         
     def run(self, *, x=0.0, z=150.0, vx=0.0, vz=-10.0, theta=0.0, vtheta=0.0,
             disable_att=False, disable_pos=False, disable_alt=False):
         """
-        Executes a single simulation run and returns the trajectory history.
+        Executes a trajectory simulation.
+
+        Args:
+            x (float): Initial lateral position [m].
+            z (float): Initial vertical altitude [m].
+            vx (float): Initial lateral velocity [m/s].
+            vz (float): Initial vertical velocity [m/s].
+            theta (float): Initial tilt angle from vertical [rad].
+            vtheta (float): Initial angular velocity [rad/s].
+            disable_att, disable_pos, disable_alt (bool): Flags to toggle control channels.
+
+        Returns:
+            np.ndarray: Matrix of flight data. Columns:
+                    [t(s), x(m), z(m), theta(rad), vx(m/s), vz(m/s), vtheta(rad/s),
+                    thrust(N), delta(rad), theta_cmd(rad)].
         """
         # Re-initialize components for a clean run
         rocket = Rocket()
@@ -53,8 +86,14 @@ class RocketSimulator:
     @staticmethod
     def check_landing_criteria(history):
         """
-        Evaluates the final state of a simulation against safety requirements.
-        Returns (bool, dict) indicating overall success and specific failures.
+        Evaluates flight history against mission requirements.
+
+        Args:
+            history (np.ndarray): The trajectory data from run().
+
+        Returns:
+            tuple: (success (bool), report (dict)) detailing pass/fail status 
+                for precision, velocity, and stability metrics.
         """
         if len(history) == 0:
             return False, {"error": "Empty history"}
@@ -65,12 +104,12 @@ class RocketSimulator:
         x_f, theta_f, vx_f, vz_f, vtheta_f = final_row[1], final_row[3], final_row[4], final_row[5], final_row[6]
 
         results = {
-            "timeout": t_f < 35.0,
-            "precision_x": abs(x_f) < 3.0,
-            "soft_landing_vz": abs(vz_f) < 0.5,
-            "lateral_drift_vx": abs(vx_f) < 0.5,
-            "upright_theta": abs(np.rad2deg(theta_f)) < 2.0,
-            "angular_stability": abs(np.rad2deg(vtheta_f)) < 1.0
+            "timeout": t_f < 35.0,                                # Vehicle must land before simulation end [s]
+            "precision_x": abs(x_f) < 3.0,                        # Lateral position near target pad [m]
+            "soft_landing_vz": abs(vz_f) < 0.5,                   # Vertical speed at touchdown [m/s]
+            "lateral_drift_vx": abs(vx_f) < 0.5,                  # Lateral speed at touchdown [m/s]
+            "upright_theta": abs(np.rad2deg(theta_f)) < 2.0,      # Tilt angle at touchdown [deg]
+            "angular_stability": abs(np.rad2deg(vtheta_f)) < 1.0  # Rotation speed at touchdown [deg/s]
         }
         
         success = all(results.values())

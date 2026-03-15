@@ -3,16 +3,25 @@ def compute_theoretical_gains(rocket,
                               wn_alt=1.0, zeta_alt=1.0,   # Critically damped altitude
                               wn_pos=0.7, zeta_pos=1.2):  # Large separation from attitude
     """
-    Computes theoretical PID/PD gains based on linearized 2nd-order dynamics.
-    
+    Computes theoretical PID/PD gains using pole placement for linearized 2nd-order dynamics.
+
+    The method assumes small-angle approximations and decouples the altitude from 
+    attitude and lateral channels.
+
     Args:
-        rocket: An instance of the Rocket class (for m, J, l, g).
-        wn_att, zeta_att: Desired frequency/damping for the Attitude loop.
-        wn_alt, zeta_alt: Desired frequency/damping for the Altitude loop.
-        wn_pos: Desired frequency for the Position (outer) loop.
-        
+        rocket (Rocket): Instance containing plant parameters (m, J, l, g).
+        wn_att (float): Natural frequency of the attitude inner-loop [rad/s].
+        zeta_att (float): Damping ratio of the attitude inner-loop.
+        wn_alt (float): Natural frequency of the altitude loop [rad/s].
+        zeta_alt (float): Damping ratio of the altitude loop.
+        wn_pos (float): Natural frequency of the position outer-loop [rad/s].
+        zeta_pos (float): Damping ratio of the position outer-loop.
+
     Returns:
-        dict: A dictionary containing sets of Kp, Ki, Kd for each loop.
+        dict: nested dictionary structured as { 'loop_name': {'kp': val, 'ki': val, 'kd': val} }.
+    
+    Note:
+        Attitude gains are calculated assuming nominal thrust equals weight (T = m*g).
     """
     # Altitude Gains (Vertical)
     # Based on m*z_ddot + Kd*z_dot + Kp*z = 0

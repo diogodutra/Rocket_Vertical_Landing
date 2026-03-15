@@ -1,4 +1,4 @@
-This document presents answers to the assignment questions.
+This document presents the answers to the assignment questions.
 
 # Session 2 - Problem formulation and modelling
 
@@ -114,55 +114,57 @@ Notes:
 
 # Session 4 - Robustness and sensitivity analyses
 ## Question 4 - How much can the set of initial conditions be expanded while still be able to land within the requirements? E.g. how much further away can you initiate the powered descent? At which speed? With which tilt angle? Discuss.
-### OAT Grid Search
-One-At-a-Time (OAT) Grid Search is performed over the initial state parameters to quickly verify how much the envelope can be expanded from the nominal initial states, for each state in separate:
-![grid-search](grid_search_summary_nominal.png)
 
 For reference during the following subsections, here is an example of successfull flight:
 ![single_flight._example](single_flight._example.png)
 
-> PS: the altitude $z$ is presented in all plots as divided by 10 so it can be seen in similar order of magnitude as lateral position $x$.
+> Note: the altitude $z$ is presented in all plots as divided by 10 so it can be seen in similar order of magnitude as lateral position $x$.
+### OAT Grid Search
+One-At-a-Time (OAT) Grid Search is performed by repeatedly running a flight simulator (like shown in the plot above) but changing the initial state parameters. The aim is to quickly verify how much the envelope can be expanded from the nominal initial states, for each state in separate:
+![grid-search](grid_search_summary_nominal.png)
+
+As shown in the plot above, one of the requirements is not met yet.
 
 ### Initial x
-After 17 meters horizontally away from the target position, $x$ and $\dot{x}$ finish with lateral translation still in progress. It looks like there is more opportunity for improvement by increasing hovering time, though:
+After 6 meters horizontally away from the target position, $x$ and $\dot{x}$ finish with lateral translation still in progress. It looks like there is opportunity for improvement by fine-tuning the position controller derivative gain, or delaying the landing event:
 ![ota_x](ota_x.png)
 
 ### Initial z
-Initial altitude can start as low as 25 meters. Lower than this does not allow time for the altitude controller to avoid collision given the initial vertical speed of -10m/s. This envelope can hardly be improved, though it does not seem to be necesary for a realistic CONOPS:
+Initial altitude can start as low as 25 meters high. Lower than this does not allow time for the altitude controller to avoid collision given the initial vertical speed of -10m/s. This envelope can hardly be improved, though it does not seem to be necessary for a realistic CONOPS:
 ![ota_z](ota_z.png)
 
 ### Initial vx
-Lateral velocity must start up to 2 m/s. After this figure, there is an oscillation in the gimbal caused by the Altitude controller, and a premature flight ending. This indicates that there may be room for improvement if successfully solving a potential resonance with attitude controller:
+Lateral velocity must start up to 1 m/s. After this figure there is an oscillation in the gimbal near the landing point. Such oscillation is likely caused a lack of smoother virtual gates in terminal flight, or it might be due to coupling with the Altitude controller as well. Further investigation shoud consider the possibility of delaying the landing event, or increasing the frequency gap between the Position and Attitude controllers:
 ![ota_vx](ota_vx.png)
 
 ### Initial vz
-High initial vertical velocity (ie: -1 m/s) takes too long for a landing. This issue can likely be solved by adjusting the gravity-feedforward in altitude control which is currenly not accounting for a very low vertical speed (or implementing a more sophisiticated state machine for different flight phases):
+High initial vertical velocity (ie: -1 m/s) takes too long for a landing. This issue can likely be solved by adding an outter controller for $v_z$ instead of having only the gravity-feedforward in Altitude control (or implementing a more sophisiticated state machine for different flight phases):
 ![ota_vz](ota_vz.png)
 
-On the other extreme, descending speed greater than -70 /s cannot be compensanted within enough time, leading to collision. This could be addressed if we had higher thrust:
+On the other extreme, descending speed faster than -60 m/s cannot be compensanted within enough time, leading to collision. This could be addressed if we had higher thrust, but it is actually not a reallistic CONOPS:
 ![ota_vz2](ota_vz2.png)
 
 ### Initial theta
-Attitude must start up to 5 degrees tilted. Otherwise, it manages to estabilize only the attitude control but not enough time to handle the position control. Again, it looks like there is room for improvement if we change the virtual gates to delay landing by hovering for a while until the slower outter loop is also estabilized:
+Attitude must start up to 2.5 degrees tilted (which is not enough to meet the requirement of 5 degrees). Otherwise, it manages to estabilize only the attitude control but not enough time to handle the position control. Again, it looks like there is room for improvement by adding virtual gates that would delay the landing event for a while until all requirements are met (but before 35 seconds):
 ![ota_theta](ota_theta.png)
 
-All conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more appropriate, though it would be a bit harder to show the influence of each initial state disturbance on the valid envelope boundaries.
+All conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. To address this, an extensive Monte Carlo simulation is necessary for a real rocket development.
 
 ## Question 5 - What are the key limiting factors preventing the controller to land the rocket with a larger subset of initial states, or a better accuracy? What type of Guidance and Control (G&C) architecture would be better?
 
 As discussed in the previous question 4, there are 3 limiting factors observed at the extremities of the envelope:
 
-1 - The landing event sometimes happen unnecessarially early (ie: 17.5 seconds when it could be up to 35 seconds). Such waste of potential flight time could be used to hover a few meters above the ground and have enough time to estabilize other parameters that have not yet met the requirements (usually lateral position and lateral velocity). Such new feature ("Terminal Guidance") could be achieved by creating a more sophisiticated state machine that could adding virtual gates by changing the vertical target position based on the rocket current state.
+1 - The landing event sometimes happen unnecessarially early (ie: 17.5 seconds when it could be up to 35 seconds). Such waste of potential flight time could be used to hover a few meters above the ground and have enough time to estabilize other parameters that have not yet met the requirements (usually lateral position and lateral velocity). Such new feature ("Terminal Guidance") could be achieved by creating a more sophisiticated state machine that would add virtual gates (waypoints) by changing the vertical target position based on the rocket current state and closeness to meet landing requirements.
 
-2 - The feedforward gravity for altitude control is not considering the possibility of the initial vertical speed be too slow. A correction could be implemented by adding an initial shorter controller that decreases the hover thrust in order to achieve a target vertical descendent speed. This could also be managed by a machine state as suggested in the previous bullet point. The combination of points 1 and 2 would lead to change the controllers from reactive to proactive approach ("Powered Descent Guidance").
+2 - The feedforward gravity for altitude control is not considering the possibility of the initial vertical speed be too slow. A correction could be implemented by adding an outter slower vertical speed controller that defines the descent speed that meets the target vertical descendent speed. This could also be managed by a machine state as suggested in the previous bullet point. The combination of points 1 and 2 would lead to change the controllers from reactive to proactive approach.
 
-3 - Oscillations in the TVC gimbal command, is sometimes observed in some situations. This usually happen when aggressive corrections are required involving large $\theta_{cmd}$, which causes coupling issues between the attitude and position controllers. It is also caused by a momentary lateral force in the opposite direction where the lateral displacement is commanded due to the TVC dynamics:
+3 - Oscillations in the TVC gimbal command, is sometimes observed in some situations. This usually happens when aggressive corrections are required involving large $\theta_{cmd}$, which causes coupling issues between the attitude and position controllers. It is also caused by a momentary lateral force in the opposite direction where the lateral displacement is commanded due to the TVC dynamics. Therefore:
 
-  - Some manual tuning of the position controller was performed in order to decrease such coupling, but more extensive work on this could improve lead to improved performance (perhaps with automated gain optimization techniques).
-
-  - Passing $\theta_{cmd}$ through a 2nd order lead-lag filter could also help to avoid abrupt command changes.
+  - Some manual tuning of the position controller was performed in order to decrease such coupling, but more extensive work on this could improve performance (perhaps with automated gain optimization techniques).
 
   - Gain scheduling could also help by setting more aggressive gains at the beginning and smaller gains at the terminal phase to avoid such oscillations.
+
+  - Passing $\theta_{cmd}$ through a 2nd-order lead-lag filter could also help to avoid abrupt command changes.
 
   - Complete change of GNC architecture could also be helpful. By considering LQR or MPC, all the issues reported above (ie: non-linearities, coupling) and even a custom cost function could be incorporated into the controller capabilities, potentially resulting in overall improved performance. However, such approaches are more complex to design.
 
@@ -172,41 +174,40 @@ As discussed in the previous question 4, there are 3 limiting factors observed a
 The grid search from the previous session was repeated, but this time adding the plot of minimum and maximum control commands:
 ![actuation_requirements](actuation_requirements.png)
 
-From the plot above, and considering only the nominal conditions from "3.2 Requirements", we conclude that our current GNC architecture requires:
- - thrust between 48 and 74 kN; and
+From the plot above, and considering only the nominal conditions from "3.2 Requirements", we conclude that our current GNC architecture employs:
+ - thrust between 48 and 68 kN; and
  - TVC angles between -10 and 10 degrees.
 
-Such thrust requirement results in thrust ratio of 1.5 ($ \approx 74 kN / (5.0e3 kg \times 9.81 m/s^2)$). This is very achievable considering that other similar rockets are usually between 1.5 and 2.0 thrust ratio.
+ Considering a safety margin of 10%, we increase the maximum thurst to 75 kN. Such thrust requirement results in thrust ratio of 1.5 ($ \approx 75 kN / (5.0e3 kg \times 9.81 m/s^2)$). This seems achievable considering that other similar rockets are usually between 1.5 and 2.0 thrust ratio.
 
-Regarding TVC angles, this is also reasonable considering that other similar rockets are usually between 5 to 15 degrees of gimbal range.
+Regarding TVC angles, this should also be reasonable considering that other similar rockets are usually between 5 to 15 degrees of gimbal range.
 
 Again, all conclusions above are not extensive, as they lack combination of multiple initial states disturbances and finer granularity. In such case, Monte Carlo simulation would be more appropriate.
 
 ## Question 7 - Implement those limits in your modelling and show how much this impacts your landing performance.
 
-The answer to the previous question approached both sides at the same time: comparison with other similar rockets and assessment of controls envelopes from our rocket simulation. Therefore, the TVC and Thrust requirements detailed in the previous question have no impact on the landing performance within the nominal scenarios.
+TVC and Thrust requirements detailed in the previous question have no impact on the landing performance within the nominal scenarios, as explained in the previous questions 5 and 6.
 
-For the sake of exercise, the OTA-grid-search is executed again but limiting the TVC gimbal to +-5 degrees and maximum thurst to 60 kN:
+However, for the sake of exercise and learning more about the current GNC solution, the OTA-grid-search is executed again but limiting the TVC gimbal to +-4 degrees (instead of +- 10 degrees):
 ![grid-search](grid_search_summary_reduced.png)
 
-The result is that the envelope of successfull landings has reduced across almost all parameters. This shows that the requirements from the previous question 6 are rather crucial for the success of this CONOPS. This was expected since the TVC is often used at their limits of +- 10 degrees.
+The result is that the envelope of successfull landings has reduced across almost all parameters, being less robust to changes in initial state. This shows that the requirements from the previous question 6 are rather crucial for the success of this CONOPS. This was expected since the TVC is often used at its limits of +- 10 degrees.
 
 ## Question 8 - Break down the different state variables and give examples of sensors that could be used, or alternatively examples of indirect observation method that would provide suitable estimates.
 
 All state variables have observability thanks to these sensors:
 - $\dot{\theta}$ from gyroscope (ie: IMU).
-- $\theta$, $\dot{x}$, $\dot{z}$ from inertial navigation system (INS).
-- $x$, $z$ from aided navigation system (ie: KF).
+- $x$, $z$, $\theta$, $\dot{x}$, $\dot{z}$ from aided inertial navigation system (INS).
 
-The aided navigation system should combine high-frequency sensors (IMU) and low-frequency sensors (ie: GPS, baroaltimeter, LiDAR) in a state estimator (KF) for best accuracy. EKF might be chosen over KF if non-linearity is found to play a relevant role in errors propagation of time extrapolation. Also, transfer alignment might be considered for misalignment estimation, achieving better accuracy during longer non-aided periods (ie: without GPS and LiDAR).
+Actually, all states should be properly filtered using an optimal estimator. The aided inertial navigation system should combine high-frequency sensors (IMU) and low-frequency sensors (ie: GPS, baroaltimeter, LiDAR) in a state estimator (Extended-KF or Error-State-KF) for best accuracy. EKF might be chosen over KF if non-linearity is found to play a relevant role in errors propagation of time extrapolation, but ErKF is also a solid baseline. Also, transfer alignment might be considered for IMU misalignment estimation (observability gained during long period of standing still on launching pad), achieving better accuracy during longer non-aided periods (ie: without GPS and LiDAR).
 
 In a real application, further discussions should consider lever-arm (sensors away from CM), structural deformations (ie: bending, torsion, flutter, vibrations, misalignments) and operational conditions (ie: thermal cycles on influencing bias drift, different altitudes influencing GPS accuracy).
 
 The result should be a high-frequency optimal state estimator with reduced bias drift after proper tuning.
 
-Regarding the control states, the are measured separetely:
+Regarding the control states, they are measured separetely:
 - $\delta$ using LVDT, RVDT, potentiometers, encoders or actuator current.
-- $T$ measuring combustion chamber pressure transducer, liquid fuel consumption or even IMU (since there is aerodynamical forces and constant mass value is well known then there is only gravity and thrust, otherwise ignore IMU).
+- $T$ inferred from combustion chamber pressure transducer or estimated by liquid fuel consumption.
 
 ## Question 9 - Re-implement the control algorithm you developed in section 3 but this time in C++. Additional tips and constraints for this C++ version: you should use an object-oriented approach; think about methods, encapsulation, maintainability, testability; your implementation needs to satisfy all constraints you deem necessary to successfully and safely run on an embedded flight computer: list them.
 
@@ -218,7 +219,7 @@ Applied Embedded Constraints & Safety Features:
 
 - **Static Memory Allocation**: no `new`, `malloc`, or standard containers like `std::vector` that grow dynamically to avoid non-deterministic timing and bad memory access.
 
-- **Floating Point Consistency**: using same float (32-bit) instead of double (64-bit) consistently across all variables for higher hardware compatibility.
+- **Floating Point Consistency**: using same float (32-bit) across all C++ modules, though double (64-bit) should be considered to avoid numerical error in KF state propagation (at the cost of slower computational speed).
 
 - **Temporal Determinism**: fixed-step execution (dt) designed to run in a deterministic loop (e.g., a 100Hz task) without timing jitter.
 
@@ -230,7 +231,7 @@ Applied Embedded Constraints & Safety Features:
 
 - **Numerical Safety**: protection against division-by-zero.
 
-- **Namespace Protection**: wrap GNC code in a namespace (eg: `RocketLab::GNC`) to avoid naming collisions with other libraries.
+- **Namespace Protection**: wrap GNC code in a namespace (eg: `RocketLab::GNC`) to avoid naming collisions with other libraries, as best practice for SW integration.
 
 - **Automated Verification**: following test-driven development approach, integrated GoogleTest for Continuous Integration mindset, allowing automated regression testing and naturally contributing towards a future Built-In-Test library.
 

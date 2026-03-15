@@ -1,6 +1,14 @@
+"""
+@file integrator.py
+@brief Numerical integration methods for state propagation.
+"""
+
 class EulerIntegrator:
     """
     Performs first-order Euler integration for time propagation.
+    
+    Mathematical form:
+    s(t + dt) = s(t) + f(s, u) * dt
     """
     def __init__(self, model):
         """
@@ -12,8 +20,10 @@ class EulerIntegrator:
 
     def propagate(self, dt):
         """
-        Updates the model's state using the Euler method: 
-        s_new = s_old + f(s, u) * dt
+        Updates the model's state using the Euler method.
+
+        Args:
+            dt (float): Integration time step [s].
         """
         derivatives = self.model.get_derivatives()
         
@@ -23,7 +33,10 @@ class EulerIntegrator:
 
 class HeunIntegrator:
     """
-    Performs second-order Heun's method integration for time propagation.
+    Performs second-order Heun's method (Improved Euler) for time propagation.
+    
+    This is a Predictor-Corrector method that reduces local truncation error
+    from O(dt^2) to O(dt^3).
     """
     def __init__(self, model):
         """
@@ -35,9 +48,14 @@ class HeunIntegrator:
 
     def propagate(self, dt):
         """
-        Updates the model's state using Heun's method (Predictor-Corrector):
-        1. Predict: s_inter = s_old + f(s_old) * dt
-        2. Correct: s_new = s_old + [f(s_old) + f(s_inter)] / 2 * dt
+        Updates the model's state using Heun's method.
+
+        Algorithm:
+        1. Predict: Calculate intermediate state using current slope.
+        2. Correct: Average current slope and predicted slope to update state.
+
+        Args:
+            dt (float): Integration time step [s].
         """
         # Save initial state to revert after prediction
         initial_state = self.model.state.copy()

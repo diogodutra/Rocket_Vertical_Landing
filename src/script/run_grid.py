@@ -1,11 +1,27 @@
+"""
+@file run_grid.py
+@brief Visualization of grid search results for controller robustness verification.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from src.helper.grid_search import perform_grid_search, generate_oat_grid
 
 def plot_grid_results(results):
-    fig, axs = plt.subplots(1, 5, figsize=(22, 5))
+    """
+    Generates a categorical scatter plot representing the stability margins
+    of the GNC system across varying plant and controller parameters.
+
+    Args:
+        results (dict): A dictionary where keys are parameter names and values
+            are tuples containing:
+            - values (np.ndarray): The specific values tested for that parameter.
+            - passes (list of bool): Success status for each test case.
+            - envelope (tuple): The identified stable range [min, max].
+    """
+    fig, axs = plt.subplots(1, 5, figsize=(14, 5))
     
-    # Change: Added 'envelope' to the unpacking logic
+    # Iterate through parameters (e.g., Mass [kg], Inertia [kg·m²], Gains, etc.)
     for i, (var_name, (values, passes, envelope)) in enumerate(results.items()):
         # Green for pass, Red for fail
         colors = ['#2ecc71' if p else '#e74c3c' for p in passes]

@@ -1,5 +1,14 @@
+# ==============================================================================
+# @file CMakeLists.txt
+# @brief Build configuration for the RocketGNC Embedded Library and Test Suite.
+# @details This script handles cross-platform compilation, enforces strict 
+# compiler warnings, and integrates GoogleTest for V&V (Verification & Validation).
+# ==============================================================================
+
 cmake_minimum_required(VERSION 3.10)
 project(RocketGNC_Embedded)
+
+# Enable CTest functionality for automated test discovery
 enable_testing()
 
 # Set Compiler Standards (Ensuring Modern/Safety-Critical C++)

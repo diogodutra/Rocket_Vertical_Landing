@@ -1,3 +1,8 @@
+"""
+@file __init__.py / path_config.py
+@brief Environment configuration for local module resolution.
+"""
+
 import sys
 import os
 

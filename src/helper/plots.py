@@ -1,7 +1,25 @@
+"""
+@file plots.py
+@brief Visualization utilities for GNC trajectory analysis.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_flight(data):
+    """
+    Generates a multi-panel telemetry plot for flight performance evaluation.
+
+    The visualization focuses on verifying the three control channels:
+    1. Altitude/Vertical tracking.
+    2. Lateral/Translation tracking.
+    3. Inner-loop Attitude tracking (Actual vs. Command).
+
+    Args:
+        data (np.ndarray): Simulation history matrix where columns represent:
+            [0:t, 1:x, 2:z, 3:theta, 4:vx, 5:vz, 6:vtheta, 7:thrust, 8:delta, 9:theta_cmd]
+    """
+    
     # Column mapping
     t = data[:, 0]
     x, z, theta = data[:, 1], data[:, 2], data[:, 3]
