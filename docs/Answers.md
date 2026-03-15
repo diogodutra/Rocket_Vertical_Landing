@@ -82,19 +82,28 @@ Calculating the theoretical gains for the attitude controller, we first assume t
 Initial gains were derived by linearizing the plant dynamics and applying pole placement for a desired natural frequency $\omega_n$ and damping ratio $\zeta$.
 
 #### Altitude Controller (Vertical Loop)
-The vertical dynamics $m\ddot{z} = T - mg$ are controlled via $T = mg + K_{p,z}e_z + K_{d,z}\dot{e}_z + K_{i,z}\int e_z$:
+The vertical dynamics $m\ddot{z} = T - mg$ are controlled via feedforward + PD architecture: $T = mg + K_{p,z}e_z + K_{d,z}\dot{e}_z$:
 * **$K_{p,z} = m \cdot \omega_n^2$**
 * **$K_{d,z} = 2 \zeta \omega_n \cdot m$**
+* **$K_{i,z} = 0$**
+* $\omega_n$: $1.0$ rad/s
+* $\zeta$: $1.0$ (critically damped)
 
 #### Position Controller (Outer Loop)
 Translates lateral error into a tilt command. Since $a_x \approx g \cdot \theta$:
 * **$K_{p,x} = \frac{\omega_n^2}{g}$**
 * **$K_{d,x} = \frac{2 \zeta \omega_n}{g}$**
+* **$K_{i,x} = 0$**
+* $\omega_n$: $0.7$ rad/s (5.7x frequency separation from attitude controller)
+* $\zeta$: $1.2$ (overdamped)
 
 #### Attitude Controller (Inner Loop)
 The linearized rotational dynamics are governed by $J\ddot{\theta} = -(T \cdot l) \cdot \delta$. Using a PD law $\delta = K_{p,\theta}\theta + K_{d,\theta}\dot{\theta}$:
 * **$K_{p,\theta} = \frac{J \cdot \omega_n^2}{T \cdot l}$**
 * **$K_{d,\theta} = \frac{2 \zeta \omega_n \cdot J}{T \cdot l}$**
+* **$K_{d,\theta} = 0$**
+* $\omega_n$: $4.0$ rad/s (fast response)
+* $\zeta$: $0.8$ (underdamped)
 
 Autopilot (rocket steering) implementation is found in `control` folder.
 
@@ -106,29 +115,31 @@ Notes:
 # Session 4 - Robustness and sensitivity analyses
 ## Question 4 - How much can the set of initial conditions be expanded while still be able to land within the requirements? E.g. how much further away can you initiate the powered descent? At which speed? With which tilt angle? Discuss.
 ### OAT Grid Search
-One-At-a-Time (OAT) Grid Search is performed over the initial state parameters to quickly verify how much the envelope can be expanded for each state in separate:
+One-At-a-Time (OAT) Grid Search is performed over the initial state parameters to quickly verify how much the envelope can be expanded from the nominal initial states, for each state in separate:
 ![grid-search](grid_search_summary_nominal.png)
 
-Here is an example of successfull flight:
+For reference during the following subsections, here is an example of successfull flight:
 ![single_flight._example](single_flight._example.png)
 
+> PS: the altitude $z$ is presented in all plots as divided by 10 so it can be seen in similar order of magnitude as lateral position $x$.
+
 ### Initial x
-After 10 meters horizontally away from the target position, x and v_x finish with lateral translation still in progress. It looks like there is more opportunity for improvement by increasing hovering time, though:
+After 17 meters horizontally away from the target position, $x$ and $\dot{x}$ finish with lateral translation still in progress. It looks like there is more opportunity for improvement by increasing hovering time, though:
 ![ota_x](ota_x.png)
 
 ### Initial z
-Initial altitude can start as low as 25 meters. Too low does not allow time for the altitude controller to avoid collision given the initial vertical speed of -10m/s. This envelope can hardly improve, though it does not seem to be a realistic scenario:
+Initial altitude can start as low as 25 meters. Lower than this does not allow time for the altitude controller to avoid collision given the initial vertical speed of -10m/s. This envelope can hardly be improved, though it does not seem to be necesary for a realistic CONOPS:
 ![ota_z](ota_z.png)
 
 ### Initial vx
-Lateral velocity must start up to 1 m/s. After this figure, there is an oscillation in the gimbal caused by the Altitude controller, and a premature flight ending. This indicates that there may be room for improvement if successfully solving a potential resonance with attitude controller:
+Lateral velocity must start up to 2 m/s. After this figure, there is an oscillation in the gimbal caused by the Altitude controller, and a premature flight ending. This indicates that there may be room for improvement if successfully solving a potential resonance with attitude controller:
 ![ota_vx](ota_vx.png)
 
 ### Initial vz
-Initial vertical velocity results takes too long for a landing. This issue can probably be solved by adjusting the gravity-feedforward in altitude control, which is currenly not accounting for a very low vertical speed:
+High initial vertical velocity (ie: -1 m/s) takes too long for a landing. This issue can likely be solved by adjusting the gravity-feedforward in altitude control which is currenly not accounting for a very low vertical speed (or implementing a more sophisiticated state machine for different flight phases):
 ![ota_vz](ota_vz.png)
 
-On the other extreme, too high vertical speed cannot be compensanted within time. This could be addressed if we had higher thrust:
+On the other extreme, descending speed greater than -70 /s cannot be compensanted within enough time, leading to collision. This could be addressed if we had higher thrust:
 ![ota_vz2](ota_vz2.png)
 
 ### Initial theta
@@ -162,10 +173,10 @@ The grid search from the previous session was repeated, but this time adding the
 ![actuation_requirements](actuation_requirements.png)
 
 From the plot above, and considering only the nominal conditions from "3.2 Requirements", we conclude that our current GNC architecture requires:
- - thrust between 48 and 68 kN; and
+ - thrust between 48 and 74 kN; and
  - TVC angles between -10 and 10 degrees.
 
-Such thrust requirement results in thrust ratio of 1.4. This is very achievable considering that other similar rockets are usually between 1.5 and 2.0 thrust ratio.
+Such thrust requirement results in thrust ratio of 1.5 ($ \approx 74 kN / (5.0e3 kg \times 9.81 m/s^2)$). This is very achievable considering that other similar rockets are usually between 1.5 and 2.0 thrust ratio.
 
 Regarding TVC angles, this is also reasonable considering that other similar rockets are usually between 5 to 15 degrees of gimbal range.
 
@@ -178,7 +189,7 @@ The answer to the previous question approached both sides at the same time: comp
 For the sake of exercise, the OTA-grid-search is executed again but limiting the TVC gimbal to +-5 degrees and maximum thurst to 60 kN:
 ![grid-search](grid_search_summary_reduced.png)
 
-The result is that the envelope of successfull landings has reduced across almost all parameters. This shows that the requirements from the previous question 6 are rather crucial for the success of this CONOPS.
+The result is that the envelope of successfull landings has reduced across almost all parameters. This shows that the requirements from the previous question 6 are rather crucial for the success of this CONOPS. This was expected since the TVC is often used at their limits of +- 10 degrees.
 
 ## Question 8 - Break down the different state variables and give examples of sensors that could be used, or alternatively examples of indirect observation method that would provide suitable estimates.
 

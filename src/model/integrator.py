@@ -42,16 +42,15 @@ class HeunIntegrator:
         # Save initial state to revert after prediction
         initial_state = self.model.state.copy()
 
-        # --- Step 1: Predictor (Standard Euler step) ---
+        # Predictor (Standard Euler step)
         k1 = self.model.get_derivatives()
         state_predictor = initial_state + k1 * dt
         
-        # --- Step 2: Corrector ---
-        # Temporarily set the model to the predicted state to get future derivatives
+        # Corrector
         self.model.set_state(state_predictor)
         k2 = self.model.get_derivatives()
         
-        # Average the slopes and apply to the ORIGINAL state
+        # Average the slopes and apply to the original state
         new_state = initial_state + (0.5 * (k1 + k2) * dt)
         
         # Update model to the final corrected state

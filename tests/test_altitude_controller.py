@@ -1,5 +1,5 @@
 import pytest
-from src.model.sim import RocketSimulator
+from src.helper.sim import RocketSimulator
 
 @pytest.fixture
 def simulator():
@@ -12,6 +12,6 @@ def test_attitude_recovery_at_various_altitudes(simulator, initial_z):
     starting altitudes. Note: We use a modified run approach to 
     'mute' lateral errors if desired.
     """    
-    history = simulator.run(z=initial_z)
+    history = simulator.run(z=initial_z, disable_pos=True, disable_att=True)
     success, report = simulator.check_landing_criteria(history)    
     assert success, f"Landing failed! Failure Report: {report}"

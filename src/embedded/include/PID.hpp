@@ -11,11 +11,17 @@ public:
                  std::optional<float> min_out = std::nullopt, 
                  std::optional<float> max_out = std::nullopt)
         : kp(kp), ki(ki), kd(kd), min_limit(min_out), max_limit(max_out),
-          integral(0.0f), prev_error(0.0f), last_output(0.0f) {}
+          integral(0.0f), prev_error(0.0f), last_output(0.0f), initialized(false) {}
 
     float compute(float error, float dt) noexcept {
         // Division by zero protection & clock glitch recovery
         if (dt <= 0.0f) return last_output;
+
+        if (!initialized) {
+            // Prevent a huge derivative spike (derivative kick).
+            prev_error = error;
+            initialized = true;
+        }
 
         // Proportional
         float p_term = kp * error;
@@ -47,6 +53,7 @@ public:
         integral = 0.0f;
         prev_error = 0.0f;
         last_output = 0.0f;
+        initialized = false;
     }
 
 private:
@@ -56,6 +63,7 @@ private:
     float integral;
     float prev_error;
     float last_output;
+    bool initialized;
 };
 
 } // namespace RocketGNC

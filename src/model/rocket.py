@@ -11,7 +11,8 @@ class Rocket:
         self.m = mass
         self.J = rotational_inertia
         self.l = distance_tvc_cm
-        self.g = gravity        
+        self.g = gravity
+        
         self.state = np.zeros(6)
         self.T = 0.0
         self.delta = 0.0

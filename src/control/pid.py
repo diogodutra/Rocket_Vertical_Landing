@@ -6,7 +6,7 @@ class PID:
         self.output_limits = output_limits
         
         self.integral = 0.0
-        self.prev_error = 0.0
+        self.prev_error = None
         
     def compute(self, error, dt):
         if dt <= 0: return 0.0
@@ -19,7 +19,11 @@ class PID:
         i_term = self.ki * self.integral
         
         # Derivative
-        d_term = self.kd * (error - self.prev_error) / dt
+        if self.prev_error:
+            d_term = self.kd * (error - self.prev_error) / dt
+        else:
+            d_term = 0
+
         self.prev_error = error
         
         output = p_term + i_term + d_term

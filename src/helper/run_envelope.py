@@ -55,14 +55,7 @@ def plot_grid_results(results):
     plt.show()
 
 if __name__ == "__main__":    
-    oat_grid = generate_oat_grid(
-        x_lim=(-25, 25),
-        z_lim=(0, 200),
-        vx_lim=(-5, 5),
-        vz_lim=(-100, -1),
-        theta_lim=(-15, 15), # Pushing the envelope for the final report
-        num_points=11
-    )
+    oat_grid = generate_oat_grid()
 
     data = perform_grid_search(oat_grid)
     plot_grid_results(data)

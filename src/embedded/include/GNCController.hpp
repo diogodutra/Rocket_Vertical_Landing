@@ -40,22 +40,19 @@ public:
     static constexpr float TARGET_VZ = -0.5f;
     static constexpr float TARGET_VT = 0.0f;
 
-    /** * TUNED CONTROL GAINS 
-     * Hardcoding these as constexpr ensures they reside in read-only memory.
-     * Replace these values with the output from your Python gain script.
-     */
-    static constexpr float KP_Z = 5000.0f;
+    // CONTROL GAINS
+    static constexpr float KP_Z =  5000.0f;
     static constexpr float KD_Z = 10000.0f; 
     
-    static constexpr float KP_T = 45.8716f;
-    static constexpr float KD_T = 30.5810f;
+    static constexpr float KP_T = -81.5494f;
+    static constexpr float KD_T = -32.6198f;
     
-    static constexpr float KP_X = 0.3876f;
-    static constexpr float KD_X = 0.1193f;
+    static constexpr float KP_X = 0.0499f;
+    static constexpr float KD_X = 0.1713f;
 
     static constexpr float MAX_TCMD_Z = 100000.0f; // thrust_cmd max saturation on altitude controller (rad)
     static constexpr float MIN_TCMD_Z = 0.0f; // thrust_cmd max saturation on altitude controller (rad)
-    static constexpr float MAX_TCMD_X = 0.35f; // theta_cmd saturation on position controller (rad)
+    static constexpr float MAX_TCMD_X = 0.02f; // theta_cmd saturation on position controller (rad)
     static constexpr float MAX_TCMD_T = 0.17f; // theta_cmd saturation on attitude controller (rad)
 
     GNCController() :

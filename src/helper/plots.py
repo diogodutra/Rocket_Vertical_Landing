@@ -12,7 +12,7 @@ def plot_flight(data):
     fig, axs = plt.subplots(4, 1, figsize=(12, 6), sharex=True)
     
     # Trajectory
-    axs[0].plot(t, z * 0.1, label='Altitude (z)')
+    axs[0].plot(t, z * 0.1, label='Altitude / 10 (z)')
     axs[0].plot(t, x, label='Lateral (x)')
     axs[0].set_ylabel('Position [m]')
     axs[0].legend(loc='upper center', ncol=2)

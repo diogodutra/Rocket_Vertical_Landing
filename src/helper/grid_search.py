@@ -1,8 +1,8 @@
 import numpy as np
-from src.model.sim import RocketSimulator
+from src.helper.sim import RocketSimulator
 
-def generate_oat_grid(x_lim=(-5, 5), z_lim=(140, 160), vx_lim=(-1, 1), 
-                      vz_lim=(-9, -11), theta_lim=(-5, 5), num_points=11):
+def generate_oat_grid(x_lim=(-30, 30), z_lim=(0, 200), vx_lim=(-9, 9), 
+                      vz_lim=(-100, -1), theta_lim=(-20, 20), num_points=11):
     """
     Generates a dictionary of OAT (One-At-a-Time) test values.
     """

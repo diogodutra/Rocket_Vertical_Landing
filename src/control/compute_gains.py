@@ -1,7 +1,7 @@
 def compute_theoretical_gains(rocket,
-                              wn_att=3.0, zeta_att=1.0,
-                              wn_alt=1.0, zeta_alt=1.0,
-                              wn_pos=1.95, zeta_pos=0.3):
+                              wn_att=4.0, zeta_att=0.8,   # Faster, well-damped inner loop
+                              wn_alt=1.0, zeta_alt=1.0,   # Critically damped altitude
+                              wn_pos=0.7, zeta_pos=1.2):  # Large separation from attitude
     """
     Computes theoretical PID/PD gains based on linearized 2nd-order dynamics.
     
@@ -18,16 +18,16 @@ def compute_theoretical_gains(rocket,
     # Based on m*z_ddot + Kd*z_dot + Kp*z = 0
     kp_alt = rocket.m * (wn_alt**2)
     kd_alt = 2 * zeta_alt * wn_alt * rocket.m
-    ki_alt = 0.0 # 0.5 * kp_alt
+    ki_alt = 0.0
     
     # Attitude Gains (Inner Loop)
     # Based on J*theta_ddot + (T*l*Kd)*theta_dot + (T*l*Kp)*theta = 0
     # We assume a nominal thrust (T) equal to hover weight (m*g)
     T_hover = rocket.m * rocket.g
     
-    kp_att = (rocket.J * (wn_att**2)) / (T_hover * rocket.l)
-    kd_att = (2 * zeta_att * wn_att * rocket.J) / (T_hover * rocket.l)
-    ki_att = 0.0  # Usually kept at 0 for inner loop stability
+    kp_att = -(rocket.J * (wn_att**2)) / (T_hover * rocket.l)
+    kd_att = -(2 * zeta_att * wn_att * rocket.J) / (T_hover * rocket.l)
+    ki_att = 0.0
     
     # Position Gains (Outer Loop)
     # Based on x_ddot = g * theta -> Kp_pos = wn^2 / g

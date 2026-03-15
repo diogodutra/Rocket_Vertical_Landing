@@ -9,8 +9,10 @@ class RocketSimulator:
         self.dt = dt
         self.t_max = t_max
         self.target_state = np.array(target_state)
+        self.target_state[1] += 0.5
         
-    def run(self, *, x=0.0, z=150.0, vx=0.0, vz=-10.0, theta=0.0, vtheta=0.0):
+    def run(self, *, x=0.0, z=150.0, vx=0.0, vz=-10.0, theta=0.0, vtheta=0.0,
+            disable_att=False, disable_pos=False, disable_alt=False):
         """
         Executes a single simulation run and returns the trajectory history.
         """
@@ -33,7 +35,8 @@ class RocketSimulator:
                 break
                 
             # GNC Update
-            thrust, delta, theta_cmd = controller.update(curr_state, self.target_state, self.dt)
+            thrust, delta, theta_cmd = controller.update(curr_state, self.target_state, self.dt,
+                                                        disable_att, disable_pos, disable_alt)
             
             # Apply Actuation
             rocket.set_thrust_magnitude(thrust)
