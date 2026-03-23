@@ -1,9 +1,6 @@
 
-# Repository
-https://github.com/diogodutra/RocketLab_Assignment
-
 # Answers
-Answer to the assignment questions are available at [docs\Answers.md](docs\Answers.md).
+Answer to some questions are available at [docs\Answers.md](docs\Answers.md).
 
 # Source Code
 ## Environment
